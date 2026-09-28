@@ -1,0 +1,34 @@
+services:
+  api:
+    image: python:3.12-slim
+    working_dir: /workspace
+    volumes:
+      - .:/workspace
+    command: >
+      sh -c "pip install -e . &&
+             python -m uvicorn apps.api.main:app --host 0.0.0.0 --port 8000"
+    ports:
+      - "127.0.0.1:8000:8000"
+    environment:
+      - PORTFOLIO_PROVIDER=mock
+
+  web:
+    image: node:22-alpine
+    working_dir: /workspace/apps/web
+    volumes:
+      - .:/workspace
+      - node_modules:/workspace/apps/web/node_modules
+    command: >
+      sh -c "corepack enable &&
+             corepack prepare pnpm@11.25.0 --activate &&
+             pnpm install &&
+             pnpm dev --host 0.0.0.0"
+    ports:
+      - "127.0.0.1:5173:5173"
+    environment:
+      - API_PROXY_TARGET=http://api:8000
+    depends_on:
+      - api
+
+volumes:
+  node_modules:
